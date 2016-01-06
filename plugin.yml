@@ -1,0 +1,5 @@
+name: SpawningPool
+main: SpawningPool\Main
+author: hm
+version: 1.0-Alpha
+api: [2.0.0]
