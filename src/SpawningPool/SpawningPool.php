@@ -5,6 +5,7 @@ namespace SpawningPool;
 use pocketmine\event\Timings;
 use pocketmine\Server;
 use pocketmine\scheduler\AsyncTask;
+use SpawningPool\task\InitialTask;
 
 class SpawningPool {
 	
@@ -33,7 +34,6 @@ class SpawningPool {
 		$this->pool->resize ( $newSize );
 	}
 	public function submitTaskToWorker(AsyncTask $task, $worker) {
-		
 		if ($task->isGarbage ())
 			return;
 		

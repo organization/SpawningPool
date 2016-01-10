@@ -1,6 +1,6 @@
 <?php
 
-namespace SpawningPool;
+namespace SpawningPool\task;
 
 use pocketmine\scheduler\AsyncTask;
 
