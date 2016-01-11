@@ -440,13 +440,13 @@ class AuthenticateCallback implements Listener {
 		}
 		$this->initialEntity ( $player );
 	}
-	function getPrivateVariableData($object, $variableName) {
+	public function getPrivateVariableData($object, $variableName) {
 		$reflectionClass = new \ReflectionClass ( $object );
 		$property = $reflectionClass->getProperty ( $variableName );
 		$property->setAccessible ( true );
 		return $property->getValue ( $object );
 	}
-	function setPrivateVariableData($object, $variableName, $set) {
+	public function setPrivateVariableData($object, $variableName, $set) {
 		$reflectionClass = new \ReflectionClass ( $object );
 		$property = $reflectionClass->getProperty ( $variableName );
 		$property->setAccessible ( true );
