@@ -28,6 +28,7 @@ class PlayerMovementTask1 extends AsyncTask {
 		$this->boundingBox = serialize ( $player->boundingBox );
 	}
 	public function onRun() {
+		echo "PlayerMovementTask1 onRun()\n";
 		$boundingBox = unserialize ( $this->boundingBox );
 		if (! $boundingBox instanceof AxisAlignedBB)
 			return;
@@ -42,6 +43,7 @@ class PlayerMovementTask1 extends AsyncTask {
 		// TODO or $boundingBox is $bb right?
 	}
 	public function onCompletion(Server $server) {
+		echo "PlayerMovementTask1 onCompletion()\n";
 		$plugin = $server->getPluginManager ()->getPlugin ( 'SpawningPool' );
 		$bb = unserialize ( $this->bb );
 		if ($plugin instanceof Main and $bb instanceof AxisAlignedBB) {

@@ -23,6 +23,9 @@ class PlayerMovementTask2 extends AsyncTask {
 	private $movX;
 	private $movY;
 	private $movZ;
+	private $cx;
+	private $cy;
+	private $cz;
 	public function __construct(Player $player, $dx, $dy, $dz, $collides) {
 		$this->name = $player->getName ();
 		$this->dx = $dx;
@@ -41,6 +44,7 @@ class PlayerMovementTask2 extends AsyncTask {
 		$this->ySize = $this->getPrivateVariableData ( $player, 'ySize' );
 	}
 	public function onRun() {
+		echo "PlayerMovementTask2 onRun()\n";
 		$boundingBox = unserialize ( $this->boundingBox );
 		$list = unserialize ( $this->list );
 		
@@ -72,9 +76,10 @@ class PlayerMovementTask2 extends AsyncTask {
 		$boundingBox->offset ( 0, 0, $dz );
 		
 		if ($this->stepHeight > 0 and $fallingFlag and $this->ySize < 0.05 and ($movX != $dx or $movZ != $dz)) {
-			$cx = $dx;
-			$cy = $dy;
-			$cz = $dz;
+			$this->cx = $dx;
+			$this->cy = $dy;
+			$this->cz = $dz;
+			
 			$dx = $movX;
 			$dy = $this->stepHeight;
 			$dz = $movZ;
@@ -91,6 +96,7 @@ class PlayerMovementTask2 extends AsyncTask {
 		$this->boundingBox = serialize ( $boundingBox );
 	}
 	public function onCompletion(Server $server) {
+		echo "PlayerMovementTask2 onCompletion()\n";
 		$boundingBox = unserialize ( $this->boundingBox );
 		
 		if (! $boundingBox instanceof AxisAlignedBB)
@@ -103,7 +109,7 @@ class PlayerMovementTask2 extends AsyncTask {
 		
 		$player->boundingBox = $boundingBox;
 		
-		$server->getScheduler ()->scheduleAsyncTask ( new PlayerMovementTask3 ( $player, $this->dx, $this->dy, $this->dz, $this->inner, $this->movX,$this->movY,$this->movZ ) );
+		$server->getScheduler ()->scheduleAsyncTask ( new PlayerMovementTask3 ( $player, $this->dx, $this->dy, $this->dz, $this->inner, $this->movX, $this->movY, $this->movZ, $this->cx, $this->cy, $this->cz) );
 	}
 	public function getPrivateVariableData($object, $variableName) {
 		$reflectionClass = new \ReflectionClass ( $object );

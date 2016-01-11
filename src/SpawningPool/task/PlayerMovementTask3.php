@@ -21,7 +21,8 @@ class PlayerMovementTask3 extends AsyncTask {
 	private $minX, $minY, $minZ, $maxX, $maxY, $maxZ;
 	private $movX, $movY, $movZ;
 	private $inner;
-	public function __construct(Player $player, $dx, $dy, $dz, $inner, $movX, $movY, $movZ) {
+	private $cx, $cy, $cz;
+	public function __construct(Player $player, $dx, $dy, $dz, $inner, $movX, $movY, $movZ, $cx, $cy, $cz) {
 		$this->name = $player->getName ();
 		$this->levelTick = $player->level->getTickRate ();
 		
@@ -33,10 +34,15 @@ class PlayerMovementTask3 extends AsyncTask {
 		$this->movY = $movY;
 		$this->movZ = $movZ;
 		
+		$this->cx = $cx;
+		$this->cy = $cy;
+		$this->cz = $cz;
+		
 		$this->boundingBox = serialize ( $player->boundingBox );
 		$this->inner = $inner;
 	}
 	public function onRun() {
+		echo "PlayerMovementTask3 onRun()\n";
 		$boundingBox = unserialize ( $this->boundingBox );
 		if (! $boundingBox instanceof AxisAlignedBB)
 			return;
@@ -51,10 +57,11 @@ class PlayerMovementTask3 extends AsyncTask {
 		// is bb or $boundingBox?
 	}
 	public function onCompletion(Server $server) {
+		echo "PlayerMovementTask3 onCompletion()\n";
 		$plugin = $server->getPluginManager ()->getPlugin ( 'SpawningPool' );
 		$bb = unserialize ( $this->bb );
 		if ($plugin instanceof Main and $bb instanceof AxisAlignedBB)
-			$plugin->getCallback ()->moveplayer->playerMoveCallback3 ( $this->name, $bb, $this->minX, $this->minY, $this->minZ, $this->maxX, $this->maxY, $this->maxZ, $this->dx, $this->dy, $this->dz, $this->inner, $this->movX, $this->movY, $this->movZ );
+			$plugin->getCallback ()->moveplayer->playerMoveCallback3 ( $this->name, $bb, $this->minX, $this->minY, $this->minZ, $this->maxX, $this->maxY, $this->maxZ, $this->dx, $this->dy, $this->dz, $this->inner, $this->movX, $this->movY, $this->movZ, $this->cx, $this->cy, $this->cz );
 	}
 }
 

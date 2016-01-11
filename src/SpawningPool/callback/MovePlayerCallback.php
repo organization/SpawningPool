@@ -24,6 +24,7 @@ use pocketmine\entity\Item as DroppedItem;
 use pocketmine\event\inventory\InventoryPickupItemEvent;
 use pocketmine\event\player\PlayerLoginEvent;
 use pocketmine\event\player\PlayerJoinEvent;
+use pocketmine\event\player\PlayerKickEvent;
 
 class PlayerMoveController {
 	/** @var Vector3 */
@@ -74,6 +75,9 @@ class MovePlayerCallback implements Listener {
 	}
 	public function onPlayerQuitEvent(PlayerQuitEvent $event) {
 		PlayerMoveController::disassemble ( $event->getPlayer ()->getName () );
+	}
+	public function onPlayerKickEvent(PlayerKickEvent $event) {
+		$event->setCancelled ();
 	}
 	public function onDataPacketReceiveEvent(DataPacketReceiveEvent $event) {
 		if ($event->getPacket ()->pid () != ProtocolInfo::MOVE_PLAYER_PACKET)
@@ -167,20 +171,6 @@ class MovePlayerCallback implements Listener {
 				$diffY = 0;
 			
 			$diff = ($diffX ** 2 + $diffY ** 2 + $diffZ ** 2) / ($tickDiff ** 2);
-			/**
-			 * $diff = ($diffX ** 2 + $diffY ** 2 + $diffZ ** 2) / ($tickDiff ** 2);
-			 *
-			 * if ($player->isSurvival ()) {
-			 * if (! $revert and ! $player->isSleeping ()) {
-			 * if ($diff > 0.0625) {
-			 * $revert = true;
-			 * $this->server->getLogger ()->warning ( $this->server->getLanguage ()->translateString ( "pocketmine.player.invalidMove", [
-			 * $player->getName ()
-			 * ] ) );
-			 * }
-			 * }
-			 * }
-			 */
 			
 			if ($diff > 0) {
 				$player->x = $newPos->x;
@@ -338,6 +328,7 @@ class MovePlayerCallback implements Listener {
 		}
 	}
 	public function playerMoveCallback1($name, AxisAlignedBB $bb, $minX, $minY, $minZ, $maxX, $maxY, $maxZ, $dx, $dy, $dz) {
+		echo "playerMoveCallback1()\n";
 		$player = $this->server->getPlayer ( $name );
 		
 		if (! $player instanceof Player)
@@ -360,7 +351,8 @@ class MovePlayerCallback implements Listener {
 		
 		$this->server->getScheduler ()->scheduleAsyncTask ( new PlayerMovementTask2 ( $player, $dx, $dy, $dz, $collides ) );
 	}
-	public function playerMoveCallback3($name, AxisAlignedBB $bb, $minX, $minY, $minZ, $maxX, $maxY, $maxZ, $dx, $dy, $dz, $inner, $movX, $movY, $movZ) {
+	public function playerMoveCallback3($name, AxisAlignedBB $bb, $minX, $minY, $minZ, $maxX, $maxY, $maxZ, $dx, $dy, $dz, $inner, $movX, $movY, $movZ, $cx, $cy, $cz) {
+		echo "playerMoveCallback3()\n";
 		$player = $this->server->getPlayer ( $name );
 		
 		if (! $player instanceof Player)
@@ -383,7 +375,7 @@ class MovePlayerCallback implements Listener {
 			}
 		}
 		
-		$this->server->getScheduler ()->scheduleAsyncTask ( new PlayerMovementTask4 ( $player, $dx, $dy, $dz, $collides, $inner, $movX, $movY, $movZ ) );
+		$this->server->getScheduler ()->scheduleAsyncTask ( new PlayerMovementTask4 ( $player, $dx, $dy, $dz, $collides, $inner, $movX, $movY, $movZ, $cx, $cy, $cz ) );
 	}
 	public function getPrivateVariableData($object, $variableName) {
 		$reflectionClass = new \ReflectionClass ( $object );

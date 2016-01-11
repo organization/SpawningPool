@@ -21,7 +21,8 @@ class PlayerMovementTask4 extends AsyncTask {
 	private $ySize;
 	private $inner;
 	private $movX, $movY, $movZ;
-	public function __construct(Player $player, $dx, $dy, $dz, $collides, $inner, $movX, $movY, $movZ) {
+	private $cx, $cy, $cz;
+	public function __construct(Player $player, $dx, $dy, $dz, $collides, $inner, $movX, $movY, $movZ, $cx, $cy, $cz) {
 		$this->name = $player->getName ();
 		
 		$this->dx = $dx;
@@ -31,6 +32,10 @@ class PlayerMovementTask4 extends AsyncTask {
 		$this->movX = $movX;
 		$this->movY = $movY;
 		$this->movZ = $movZ;
+		
+		$this->cx = $cx;
+		$this->cy = $cy;
+		$this->cz = $cz;
 		
 		$this->boundingBox = serialize ( $player->boundingBox );
 		$this->list = serialize ( $collides );
@@ -42,6 +47,7 @@ class PlayerMovementTask4 extends AsyncTask {
 		$this->inner = $inner;
 	}
 	public function onRun() {
+		echo "PlayerMovementTask4 onRun()\n";
 		$boundingBox = unserialize ( $this->boundingBox );
 		$list = unserialize ( $this->list );
 		
@@ -68,10 +74,10 @@ class PlayerMovementTask4 extends AsyncTask {
 			
 			$boundingBox->offset ( 0, 0, $dz );
 			
-			if (($cx ** 2 + $cz ** 2) >= ($dx ** 2 + $dz ** 2)) {
-				$dx = $cx;
-				$dy = $cy;
-				$dz = $cz;
+			if (($this->cx ** 2 + $this->cz ** 2) >= ($dx ** 2 + $dz ** 2)) {
+				$dx = $this->cx;
+				$dy = $this->cy;
+				$dz = $this->cz;
 				$boundingBox->setBB ( $axisalignedbb1 );
 			} else {
 				$this->ySize += 0.5;
@@ -85,6 +91,7 @@ class PlayerMovementTask4 extends AsyncTask {
 		}
 	}
 	public function onCompletion(Server $server) {
+		echo "PlayerMovementTask4 onCompletion()\n";
 		$player = $server->getPlayer ( $this->name );
 		
 		if (! $player instanceof Player)
