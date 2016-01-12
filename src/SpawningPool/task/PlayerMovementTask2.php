@@ -6,13 +6,12 @@ use pocketmine\scheduler\AsyncTask;
 use pocketmine\Player;
 use pocketmine\Server;
 use pocketmine\math\AxisAlignedBB;
+use SpawningPool\Main;
 
 class PlayerMovementTask2 extends AsyncTask {
 	private $name;
 	private $levelTick;
-	private $dx;
-	private $dy;
-	private $dz;
+	private $dx, $dy, $dz;
 	private $list;
 	/** @var AxisAlignedBB */
 	private $boundingBox;
@@ -20,13 +19,10 @@ class PlayerMovementTask2 extends AsyncTask {
 	private $stepHeight;
 	private $ySize;
 	private $inner = false;
-	private $movX;
-	private $movY;
-	private $movZ;
-	private $cx;
-	private $cy;
-	private $cz;
-	public function __construct(Player $player, $dx, $dy, $dz, $collides) {
+	private $movX, $movY, $movZ;
+	private $cx, $cy, $cz;
+	private $callbackIndex;
+	public function __construct(Player $player, $dx, $dy, $dz, $collides, $callbackIndex) {
 		$this->name = $player->getName ();
 		$this->dx = $dx;
 		$this->dy = $dy;
@@ -42,6 +38,8 @@ class PlayerMovementTask2 extends AsyncTask {
 		$this->onGround = $player->onGround;
 		$this->stepHeight = $this->getPrivateVariableData ( $player, 'stepHeight' );
 		$this->ySize = $this->getPrivateVariableData ( $player, 'ySize' );
+		
+		$this->callbackIndex = $callbackIndex;
 	}
 	public function onRun() {
 		$boundingBox = unserialize ( $this->boundingBox );
@@ -95,19 +93,9 @@ class PlayerMovementTask2 extends AsyncTask {
 		$this->boundingBox = serialize ( $boundingBox );
 	}
 	public function onCompletion(Server $server) {
-		$boundingBox = unserialize ( $this->boundingBox );
-		
-		if (! $boundingBox instanceof AxisAlignedBB)
-			return;
-		
-		$player = $server->getPlayer ( $this->name );
-		
-		if (! $player instanceof Player)
-			return;
-		
-		$player->boundingBox = $boundingBox;
-		
-		$server->getScheduler ()->scheduleAsyncTask ( new PlayerMovementTask3 ( $player, $this->dx, $this->dy, $this->dz, $this->inner, $this->movX, $this->movY, $this->movZ, $this->cx, $this->cy, $this->cz) );
+		$plugin = $server->getPluginManager ()->getPlugin ( 'SpawningPool' );
+		if ($plugin instanceof Main)
+			$plugin->getCallback ()->moveplayer->playerMoveCallback2 ( $this->name, $this->dx, $this->dy, $this->dz, $this->inner, $this->movX, $this->movY, $this->movZ, $this->cx, $this->cy, $this->cz, unserialize ( $this->boundingBox ), $this->callbackIndex );
 	}
 	public function getPrivateVariableData($object, $variableName) {
 		$reflectionClass = new \ReflectionClass ( $object );

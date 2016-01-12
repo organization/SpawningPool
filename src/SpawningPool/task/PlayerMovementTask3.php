@@ -22,7 +22,8 @@ class PlayerMovementTask3 extends AsyncTask {
 	private $movX, $movY, $movZ;
 	private $inner;
 	private $cx, $cy, $cz;
-	public function __construct(Player $player, $dx, $dy, $dz, $inner, $movX, $movY, $movZ, $cx, $cy, $cz) {
+	private $callbackIndex;
+	public function __construct(Player $player, $dx, $dy, $dz, $inner, $movX, $movY, $movZ, $cx, $cy, $cz, $callbackIndex) {
 		$this->name = $player->getName ();
 		$this->levelTick = $player->level->getTickRate ();
 		
@@ -40,11 +41,15 @@ class PlayerMovementTask3 extends AsyncTask {
 		
 		$this->boundingBox = serialize ( $player->boundingBox );
 		$this->inner = $inner;
+		
+		$this->callbackIndex = $callbackIndex;
 	}
 	public function onRun() {
 		$boundingBox = unserialize ( $this->boundingBox );
-		if (! $boundingBox instanceof AxisAlignedBB)
+		if (! $boundingBox instanceof AxisAlignedBB){
+			echo "error movetask3\n";
 			return;
+		}
 		
 		$this->bb = serialize ( $this->levelTick > 1 ? $boundingBox->getOffsetBoundingBox ( $this->dx, $this->dy, $this->dz ) : $boundingBox->addCoord ( $this->dx, $this->dy, $this->dz ) );
 		$this->minX = Math::floorFloat ( $boundingBox->minX );
@@ -57,8 +62,11 @@ class PlayerMovementTask3 extends AsyncTask {
 	public function onCompletion(Server $server) {
 		$plugin = $server->getPluginManager ()->getPlugin ( 'SpawningPool' );
 		$bb = unserialize ( $this->bb );
-		if ($plugin instanceof Main and $bb instanceof AxisAlignedBB)
-			$plugin->getCallback ()->moveplayer->playerMoveCallback3 ( $this->name, $bb, $this->minX, $this->minY, $this->minZ, $this->maxX, $this->maxY, $this->maxZ, $this->dx, $this->dy, $this->dz, $this->inner, $this->movX, $this->movY, $this->movZ, $this->cx, $this->cy, $this->cz );
+		if ($plugin instanceof Main and $bb instanceof AxisAlignedBB){
+			$plugin->getCallback ()->moveplayer->playerMoveCallback3 ( $this->name, $bb, $this->minX, $this->minY, $this->minZ, $this->maxX, $this->maxY, $this->maxZ, $this->dx, $this->dy, $this->dz, $this->inner, $this->movX, $this->movY, $this->movZ, $this->cx, $this->cy, $this->cz, $this->callbackIndex );
+		}else{
+			echo "error movetask3 completion\n";
+		}
 	}
 }
 

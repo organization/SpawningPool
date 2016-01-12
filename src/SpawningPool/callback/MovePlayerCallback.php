@@ -25,6 +25,7 @@ use pocketmine\event\inventory\InventoryPickupItemEvent;
 use pocketmine\event\player\PlayerLoginEvent;
 use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerKickEvent;
+use SpawningPool\task\PlayerMovementTask3;
 
 class PlayerMoveController {
 	/** @var Vector3 */
@@ -60,12 +61,15 @@ class PlayerMoveController {
 }
 class MovePlayerCallback implements Listener {
 	private $server;
-	public $lastUpdate;
-	public $tickCounter = 0;
+	private $lastUpdate;
+	private $tickCounter = 0;
+	private $callbackIndex = 0;
+	private $finishedCallbackIndex = - 1;
+	private $callbackQueue = [ ];
 	public function __construct() {
 		$this->server = Server::getInstance ();
 		$this->lastUpdate = $this->server->getTick ();
-		$this->server->getScheduler ()->scheduleRepeatingTask ( new PlayerUpdateTick (), 1 );
+		$this->server->getScheduler ()->scheduleRepeatingTask ( new PlayerUpdateTick (), 0 );
 	}
 	public function onPlayerLoginEvent(PlayerLoginEvent $event) {
 		$this->setPrivateVariableData ( $event->getPlayer (), 'newPosition', null );
@@ -320,11 +324,15 @@ class MovePlayerCallback implements Listener {
 			return true;
 		} else {
 			$this->setPrivateVariableData ( $player, 'ySize', $this->getPrivateVariableData ( $player, 'ySize' ) * 0.4 );
-			
-			$this->server->getScheduler ()->scheduleAsyncTask ( new PlayerMovementTask1 ( $player, $dx, $dy, $dz ) );
+			echo "[$this->callbackIndex] move()\n";
+			$this->server->getScheduler ()->scheduleAsyncTask ( new PlayerMovementTask1 ( $player, $dx, $dy, $dz, $this->callbackIndex ++ ) );
 		}
 	}
-	public function playerMoveCallback1($name, AxisAlignedBB $bb, $minX, $minY, $minZ, $maxX, $maxY, $maxZ, $dx, $dy, $dz) {
+	private function playerMoveProcess1($name, AxisAlignedBB $bb, $minX, $minY, $minZ, $maxX, $maxY, $maxZ, $dx, $dy, $dz, $callbackIndex) {
+		echo "[" . $callbackIndex . "]" . " playerMoveProcess1()\n";
+		if ($callbackIndex != $this->finishedCallbackIndex + 1) {
+		}
+		
 		$player = $this->server->getPlayer ( $name );
 		
 		if (! $player instanceof Player)
@@ -336,6 +344,7 @@ class MovePlayerCallback implements Listener {
 			for($x = $minX; $x <= $maxX; ++ $x) {
 				for($y = $minY; $y <= $maxY; ++ $y) {
 					$vector = new Vector3 ( $x, $y, $z );
+					; /* 실제 유저에게 변경이 이뤄지는 곳 */
 					$this->setPrivateVariableData ( $player, 'temporalVector', $vector );
 					
 					$block = $player->getLevel ()->getBlock ( $vector );
@@ -345,10 +354,26 @@ class MovePlayerCallback implements Listener {
 			}
 		}
 		
-		$this->server->getScheduler ()->scheduleAsyncTask ( new PlayerMovementTask2 ( $player, $dx, $dy, $dz, $collides ) );
+		$this->server->getScheduler ()->scheduleAsyncTask ( new PlayerMovementTask2 ( $player, $dx, $dy, $dz, $collides, $callbackIndex ) );
 	}
-	public function playerMoveCallback3($name, AxisAlignedBB $bb, $minX, $minY, $minZ, $maxX, $maxY, $maxZ, $dx, $dy, $dz, $inner, $movX, $movY, $movZ, $cx, $cy, $cz) {
-		echo "playerMoveCallback3()\n";
+	private function playerMoveProcess2($name, $dx, $dy, $dz, $inner, $movX, $movY, $movZ, $cx, $cy, $cz, $boundingBox, $callbackIndex) {
+		echo "[" . $callbackIndex . "]" . " playerMoveProcess2()\n";
+		if (! $boundingBox instanceof AxisAlignedBB){
+			echo "error process2\n";
+			return;
+		}			
+		
+		$player = $this->server->getPlayer ( $name );
+		
+		if (! $player instanceof Player)
+			return;
+		
+		; /* 실제 유저에게 변경이 이뤄지는 곳 */
+		$player->boundingBox = $boundingBox;
+		$this->server->getScheduler ()->scheduleAsyncTask ( new PlayerMovementTask3 ( $player, $dx, $dy, $dz, $inner, $movX, $movY, $movZ, $cx, $cy, $cz, $callbackIndex ) );
+	}
+	private function playerMoveProcess3($name, AxisAlignedBB $bb, $minX, $minY, $minZ, $maxX, $maxY, $maxZ, $dx, $dy, $dz, $inner, $movX, $movY, $movZ, $cx, $cy, $cz, $callbackIndex) {
+		echo "[" . $callbackIndex . "]" . " playerMoveProcess3()\n";
 		$player = $this->server->getPlayer ( $name );
 		
 		if (! $player instanceof Player)
@@ -361,6 +386,7 @@ class MovePlayerCallback implements Listener {
 				for($x = $minX; $x <= $maxX; ++ $x) {
 					for($y = $minY; $y <= $maxY; ++ $y) {
 						$vector = new Vector3 ( $x, $y, $z );
+						; /* 실제 유저에게 변경이 이뤄지는 곳 */
 						$this->setPrivateVariableData ( $player, 'temporalVector', $vector );
 						
 						$block = $player->getLevel ()->getBlock ( $vector );
@@ -371,7 +397,361 @@ class MovePlayerCallback implements Listener {
 			}
 		}
 		
-		$this->server->getScheduler ()->scheduleAsyncTask ( new PlayerMovementTask4 ( $player, $dx, $dy, $dz, $collides, $inner, $movX, $movY, $movZ, $cx, $cy, $cz ) );
+		$this->server->getScheduler ()->scheduleAsyncTask ( new PlayerMovementTask4 ( $player, $dx, $dy, $dz, $collides, $inner, $movX, $movY, $movZ, $cx, $cy, $cz, $callbackIndex ) );
+	}
+	private function playerMoveProcess4($name, $ySize, $onGround, $movX, $movY, $movZ, $dx, $dy, $dz, $callbackIndex) {
+		echo "[" . $callbackIndex . "]" . " playerMoveProcess4()" . $this->finishedCallbackIndex . "\n";
+		$player = $this->server->getPlayer ( $name );
+		if (! $player instanceof Player)
+			return;
+		
+		; /* 실제 유저에게 변경이 이뤄지는 곳 */
+		$this->setPrivateVariableData ( $player, 'ySize', $ySize );
+		
+		$this->checkChunks ( $player );
+		$this->checkGroundState ( $player, $movX, $movY, $movZ, $dx, $dy, $dz );
+		$this->updateFallState ( $player, $dy, $onGround );
+		
+		if ($movX != $dx)
+			$player->motionX = 0;
+		
+		if ($movY != $dy)
+			$player->motionY = 0;
+		
+		if ($movZ != $dz)
+			$player->motionZ = 0;
+	}
+	public function playerMoveCallback1($name, AxisAlignedBB $bb, $minX, $minY, $minZ, $maxX, $maxY, $maxZ, $dx, $dy, $dz, $callbackIndex) {
+		/* 다음순서로 처리해야하는 콜백인지 확인 */
+		if ($callbackIndex == $this->finishedCallbackIndex + 1) {
+			echo "A ";
+			/* 다음순서로 처리해야하는 콜백일경우 바로 처리 */
+			$this->playerMoveProcess1 ( $name, $bb, $minX, $minY, $minZ, $maxX, $maxY, $maxZ, $dx, $dy, $dz, $callbackIndex );
+			
+			/* 미리 들어와서 쌓여있던 다다음 처리 콜백들 일괄 처리 */
+			if (! isset ( $this->callbackQueue [1] ))
+				return;
+			
+			ksort ( $this->callbackQueue [1] ); /* 큐 오름차 정렬 */
+			foreach ( $this->callbackQueue [1] as $callbackIndex => $mem ) {
+				$name = $mem [0];
+				$bb = $mem [1];
+				$minX = $mem [2];
+				$minY = $mem [3];
+				$minZ = $mem [4];
+				$maxX = $mem [5];
+				$maxY = $mem [6];
+				$maxZ = $mem [7];
+				$dx = $mem [8];
+				$dy = $mem [9];
+				$dz = $mem [10];
+				unset ( $this->callbackQueue [1] [$callbackIndex] );
+				echo "B ";
+				$this->playerMoveProcess1 ( $name, $bb, $minX, $minY, $minZ, $maxX, $maxY, $maxZ, $dx, $dy, $dz, $callbackIndex );
+			}
+		} else if (isset ( $this->callbackQueue [1] [$this->finishedCallbackIndex + 1] )) {
+			/* 다다음 처리해야할 콜백이 먼저들어왔을 경우 메모리 저장 */
+			$this->callbackQueue [1] [$callbackIndex] = [ 
+					$name,
+					$bb,
+					$minX,
+					$minY,
+					$minZ,
+					$maxX,
+					$maxY,
+					$maxZ,
+					$dx,
+					$dy,
+					$dz 
+			];
+			
+			$callbackIndex = $this->finishedCallbackIndex + 1;
+			/* 다음으로 처리해야할 콜백이 이미 들어와있을 경우 진행 */
+			$name = $this->callbackQueue [1] [$callbackIndex] [0];
+			$bb = $this->callbackQueue [1] [$callbackIndex] [1];
+			$minX = $this->callbackQueue [1] [$callbackIndex] [2];
+			$minY = $this->callbackQueue [1] [$callbackIndex] [3];
+			$minZ = $this->callbackQueue [1] [$callbackIndex] [4];
+			$maxX = $this->callbackQueue [1] [$callbackIndex] [5];
+			$maxY = $this->callbackQueue [1] [$callbackIndex] [6];
+			$maxZ = $this->callbackQueue [1] [$callbackIndex] [7];
+			$dx = $this->callbackQueue [1] [$callbackIndex] [8];
+			$dy = $this->callbackQueue [1] [$callbackIndex] [9];
+			$dz = $this->callbackQueue [1] [$callbackIndex] [10];
+			unset ( $this->callbackQueue [1] [$callbackIndex] );
+			echo "C ";
+			$this->playerMoveProcess1 ( $name, $bb, $minX, $minY, $minZ, $maxX, $maxY, $maxZ, $dx, $dy, $dz, $callbackIndex );
+		} else {
+			echo "[$callbackIndex] saved\n";
+			/* 다다음 처리해야할 콜백이 먼저들어왔을 경우 메모리 저장 */
+			$this->callbackQueue [1] [$callbackIndex] = [ 
+					$name,
+					$bb,
+					$minX,
+					$minY,
+					$minZ,
+					$maxX,
+					$maxY,
+					$maxZ,
+					$dx,
+					$dy,
+					$dz 
+			];
+		}
+	}
+	public function playerMoveCallback2($name, $dx, $dy, $dz, $inner, $movX, $movY, $movZ, $cx, $cy, $cz, $boundingBox, $callbackIndex) {
+		/* 다음순서로 처리해야하는 콜백인지 확인 */
+		if ($callbackIndex == $this->finishedCallbackIndex + 1) {
+			/* 다음순서로 처리해야하는 콜백일경우 바로 처리 */
+			$this->playerMoveProcess2 ( $name, $dx, $dy, $dz, $inner, $movX, $movY, $movZ, $cx, $cy, $cz, $boundingBox, $callbackIndex );
+			
+			/* 미리 들어와서 쌓여있던 다다음 처리 콜백들 일괄 처리 */
+			if (! isset ( $this->callbackQueue [2] ))
+				return;
+			
+			ksort ( $this->callbackQueue [2] ); /* 큐 오름차 정렬 */
+			foreach ( $this->callbackQueue [2] as $callbackIndex => $mem ) {
+				$name = $mem [0];
+				$dx = $mem [1];
+				$dy = $mem [2];
+				$dz = $mem [3];
+				$inner = $mem [4];
+				$movX = $mem [5];
+				$movY = $mem [6];
+				$movZ = $mem [7];
+				$cx = $mem [8];
+				$cy = $mem [9];
+				$cz = $mem [10];
+				unset ( $this->callbackQueue [2] [$callbackIndex] );
+				
+				$this->playerMoveProcess2 ( $name, $dx, $dy, $dz, $inner, $movX, $movY, $movZ, $cx, $cy, $cz, $boundingBox, $callbackIndex );
+			}
+		} else if (isset ( $this->callbackQueue [2] [$this->finishedCallbackIndex + 1] )) {
+			/* 다음으로 처리해야할 콜백이 이미 들어와있을 경우 진행 */
+			ksort ( $this->callbackQueue [2] ); /* 큐 오름차 정렬 */
+			foreach ( $this->callbackQueue [2] as $callbackIndex => $mem ) {
+				$name = $mem [0];
+				$dx = $mem [1];
+				$dy = $mem [2];
+				$dz = $mem [3];
+				$inner = $mem [4];
+				$movX = $mem [5];
+				$movY = $mem [6];
+				$movZ = $mem [7];
+				$cx = $mem [8];
+				$cy = $mem [9];
+				$cz = $mem [10];
+				$boundingBox = $mem [0];
+				unset ( $this->callbackQueue [2] [$callbackIndex] );
+				
+				$this->playerMoveProcess2 ( $name, $dx, $dy, $dz, $inner, $movX, $movY, $movZ, $cx, $cy, $cz, $boundingBox, $callbackIndex );
+			}
+		} else {
+			/* 다다음 처리해야할 콜백이 먼저들어왔을 경우 메모리 저장 */
+			$this->callbackQueue [2] [$callbackIndex] = [ 
+					$name,
+					$dx,
+					$dy,
+					$dz,
+					$inner,
+					$movX,
+					$movY,
+					$movZ,
+					$cx,
+					$cy,
+					$cz,
+					$boundingBox 
+			];
+		}
+	}
+	public function playerMoveCallback3($name, AxisAlignedBB $bb, $minX, $minY, $minZ, $maxX, $maxY, $maxZ, $dx, $dy, $dz, $inner, $movX, $movY, $movZ, $cx, $cy, $cz, $callbackIndex) {
+		/* 다음순서로 처리해야하는 콜백인지 확인 */
+		if ($callbackIndex == $this->finishedCallbackIndex + 1) {
+			/* 다음순서로 처리해야하는 콜백일경우 바로 처리 */
+			$this->playerMoveProcess3 ( $name, $bb, $minX, $minY, $minZ, $maxX, $maxY, $maxZ, $dx, $dy, $dz, $inner, $movX, $movY, $movZ, $cx, $cy, $cz, $callbackIndex );
+			
+			/* 미리 들어와서 쌓여있던 다다음 처리 콜백들 일괄 처리 */
+			if (! isset ( $this->callbackQueue [3] ))
+				return;
+			
+			ksort ( $this->callbackQueue [3] ); /* 큐 오름차 정렬 */
+			foreach ( $this->callbackQueue [3] as $callbackIndex => $mem ) {
+				$name = $mem [0];
+				$bb = $mem [1];
+				$minX = $mem [2];
+				$minY = $mem [3];
+				$minZ = $mem [4];
+				$maxX = $mem [5];
+				$maxY = $mem [6];
+				$maxZ = $mem [7];
+				$dx = $mem [8];
+				$dy = $mem [9];
+				$dz = $mem [10];
+				$inner = $mem [11];
+				$movX = $mem [12];
+				$movY = $mem [13];
+				$movZ = $mem [14];
+				$cx = $mem [15];
+				$cy = $mem [16];
+				$cz = $mem [17];
+				unset ( $this->callbackQueue [3] [$callbackIndex] );
+				
+				$this->playerMoveProcess3 ( $name, $bb, $minX, $minY, $minZ, $maxX, $maxY, $maxZ, $dx, $dy, $dz, $inner, $movX, $movY, $movZ, $cx, $cy, $cz, $callbackIndex );
+			}
+		} else if (isset ( $this->callbackQueue [3] [$this->finishedCallbackIndex + 1] )) {
+			/* 다음으로 처리해야할 콜백이 이미 들어와있을 경우 진행 */
+			ksort ( $this->callbackQueue [3] ); /* 큐 오름차 정렬 */
+			foreach ( $this->callbackQueue [3] as $callbackIndex => $mem ) {
+				$name = $mem [0];
+				$bb = $mem [1];
+				$minX = $mem [2];
+				$minY = $mem [3];
+				$minZ = $mem [4];
+				$maxX = $mem [5];
+				$maxY = $mem [6];
+				$maxZ = $mem [7];
+				$dx = $mem [8];
+				$dy = $mem [9];
+				$dz = $mem [10];
+				$inner = $mem [11];
+				$movX = $mem [12];
+				$movY = $mem [13];
+				$movZ = $mem [14];
+				$cx = $mem [15];
+				$cy = $mem [16];
+				$cz = $mem [17];
+				unset ( $this->callbackQueue [3] [$callbackIndex] );
+				
+				$this->playerMoveProcess3 ( $name, $bb, $minX, $minY, $minZ, $maxX, $maxY, $maxZ, $dx, $dy, $dz, $inner, $movX, $movY, $movZ, $cx, $cy, $cz, $callbackIndex );
+			}
+		} else {
+			/* 다다음 처리해야할 콜백이 먼저들어왔을 경우 메모리 저장 */
+			$this->callbackQueue [3] [$callbackIndex] = [ 
+					$name,
+					$bb,
+					$minX,
+					$minY,
+					$minZ,
+					$maxX,
+					$maxY,
+					$maxZ,
+					$dx,
+					$dy,
+					$dz,
+					$inner,
+					$movX,
+					$movY,
+					$movZ,
+					$cx,
+					$cy,
+					$cz 
+			];
+		}
+	}
+	public function playerMoveCallback4($name, $ySize, $onGround, $movX, $movY, $movZ, $dx, $dy, $dz, $callbackIndex) {
+		/* 다음순서로 처리해야하는 콜백인지 확인 */
+		if ($callbackIndex == $this->finishedCallbackIndex + 1) {
+			/* 다음순서로 처리해야하는 콜백일경우 바로 처리 */
+			$this->playerMoveProcess4 ( $name, $ySize, $onGround, $movX, $movY, $movZ, $dx, $dy, $dz, $callbackIndex );
+			$this->finishedCallbackIndex ++;
+			/* 미리 들어와서 쌓여있던 다다음 처리 콜백들 일괄 처리 */
+			if (! isset ( $this->callbackQueue [4] ))
+				return;
+			
+			ksort ( $this->callbackQueue [4] ); /* 큐 오름차 정렬 */
+			foreach ( $this->callbackQueue [4] as $callbackIndex => $mem ) {
+				$name = $mem [0];
+				$ySize = $mem [1];
+				$onGround = $mem [2];
+				$movX = $mem [3];
+				$movY = $mem [4];
+				$movZ = $mem [5];
+				$dx = $mem [6];
+				$dy = $mem [7];
+				$dz = $mem [8];
+				unset ( $this->callbackQueue [4] [$callbackIndex] );
+				
+				$this->playerMoveProcess4 ( $name, $ySize, $onGround, $movX, $movY, $movZ, $dx, $dy, $dz, $callbackIndex );
+				$this->finishedCallbackIndex ++;
+			}
+		} else if (isset ( $this->callbackQueue [4] [$this->finishedCallbackIndex + 1] )) {
+			/* 다음으로 처리해야할 콜백이 이미 들어와있을 경우 진행 */
+			ksort ( $this->callbackQueue [4] ); /* 큐 오름차 정렬 */
+			foreach ( $this->callbackQueue [4] as $callbackIndex => $mem ) {
+				$name = $mem [0];
+				$ySize = $mem [1];
+				$onGround = $mem [2];
+				$movX = $mem [3];
+				$movY = $mem [4];
+				$movZ = $mem [5];
+				$dx = $mem [6];
+				$dy = $mem [7];
+				$dz = $mem [8];
+				unset ( $this->callbackQueue [4] [$callbackIndex] );
+				
+				$this->playerMoveProcess4 ( $name, $ySize, $onGround, $movX, $movY, $movZ, $dx, $dy, $dz, $callbackIndex );
+				$this->finishedCallbackIndex ++;
+			}
+		} else {
+			/* 다다음 처리해야할 콜백이 먼저들어왔을 경우 메모리 저장 */
+			$this->callbackQueue [4] [$callbackIndex] = [ 
+					$name,
+					$ySize,
+					$onGround,
+					$movX,
+					$movY,
+					$movZ,
+					$dx,
+					$dy,
+					$dz 
+			];
+		}
+	}
+	private function checkChunks(Player $player) {
+		if ($player->chunk === null or ($player->chunk->getX () !== ($player->x >> 4) or $player->chunk->getZ () !== ($player->z >> 4))) {
+			if ($player->chunk !== null) {
+				$player->chunk->removeEntity ( $player );
+			}
+			$player->chunk = $player->level->getChunk ( $player->x >> 4, $player->z >> 4, true );
+			
+			if (! $this->getPrivateVariableData ( $player, 'justCreated' )) {
+				$newChunk = $player->level->getChunkPlayers ( $player->x >> 4, $player->z >> 4 );
+				foreach ( $this->getPrivateVariableData ( $player, 'hasSpawned' ) as $player ) {
+					if (! isset ( $newChunk [$player->getLoaderId ()] )) {
+						$player->despawnFrom ( $player );
+					} else {
+						unset ( $newChunk [$player->getLoaderId ()] );
+					}
+				}
+				foreach ( $newChunk as $player ) {
+					$player->spawnTo ( $player );
+				}
+			}
+			
+			if ($player->chunk === null) {
+				return;
+			}
+			
+			$player->chunk->addEntity ( $player );
+		}
+	}
+	private function checkGroundState(Player $player, $movX, $movY, $movZ, $dx, $dy, $dz) {
+		$player->isCollidedVertically = $movY != $dy;
+		$player->isCollidedHorizontally = ($movX != $dx or $movZ != $dz);
+		$player->isCollided = ($player->isCollidedHorizontally or $player->isCollidedVertically);
+		$player->onGround = ($movY != $dy and $movY < 0);
+	}
+	private function updateFallState(Player $player, $distanceThisTick, $onGround) {
+		if ($onGround === true) {
+			if ($player->fallDistance > 0) {
+				if ($this instanceof Living) {
+					$this->fall ( $player->fallDistance );
+				}
+				$player->resetFallDistance ();
+			}
+		} elseif ($distanceThisTick < 0) {
+			$player->fallDistance -= $distanceThisTick;
+		}
 	}
 	public function getPrivateVariableData($object, $variableName) {
 		$reflectionClass = new \ReflectionClass ( $object );

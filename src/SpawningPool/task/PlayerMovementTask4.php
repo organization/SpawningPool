@@ -6,6 +6,7 @@ use pocketmine\scheduler\AsyncTask;
 use pocketmine\Server;
 use pocketmine\Player;
 use pocketmine\math\AxisAlignedBB;
+use SpawningPool\Main;
 
 class PlayerMovementTask4 extends AsyncTask {
 	private $name;
@@ -22,7 +23,8 @@ class PlayerMovementTask4 extends AsyncTask {
 	private $inner;
 	private $movX, $movY, $movZ;
 	private $cx, $cy, $cz;
-	public function __construct(Player $player, $dx, $dy, $dz, $collides, $inner, $movX, $movY, $movZ, $cx, $cy, $cz) {
+	private $callbackIndex;
+	public function __construct(Player $player, $dx, $dy, $dz, $collides, $inner, $movX, $movY, $movZ, $cx, $cy, $cz, $callbackIndex) {
 		$this->name = $player->getName ();
 		
 		$this->dx = $dx;
@@ -45,6 +47,7 @@ class PlayerMovementTask4 extends AsyncTask {
 		$this->ySize = $this->getPrivateVariableData ( $player, 'ySize' );
 		
 		$this->inner = $inner;
+		$this->callbackIndex = $callbackIndex;
 	}
 	public function onRun() {
 		$boundingBox = unserialize ( $this->boundingBox );
@@ -90,83 +93,15 @@ class PlayerMovementTask4 extends AsyncTask {
 		}
 	}
 	public function onCompletion(Server $server) {
-		$player = $server->getPlayer ( $this->name );
-		
-		if (! $player instanceof Player)
-			return;
-		
-		$this->setPrivateVariableData ( $player, 'ySize', $this->ySize );
-		
-		$this->checkChunks ( $player );
-		$this->checkGroundState ( $player, $this->movX, $this->movY, $this->movZ, $this->dx, $this->dy, $this->dz );
-		$this->updateFallState ( $player, $this->dy, $this->onGround );
-		
-		if ($this->movX != $this->dx)
-			$player->motionX = 0;
-		
-		if ($this->movY != $this->dy)
-			$player->motionY = 0;
-		
-		if ($this->movZ != $this->dz)
-			$player->motionZ = 0;
-	}
-	private function checkChunks(Player $player) {
-		if ($player->chunk === null or ($player->chunk->getX () !== ($player->x >> 4) or $player->chunk->getZ () !== ($player->z >> 4))) {
-			if ($player->chunk !== null) {
-				$player->chunk->removeEntity ( $player );
-			}
-			$player->chunk = $player->level->getChunk ( $player->x >> 4, $player->z >> 4, true );
-			
-			if (! $this->getPrivateVariableData ( $player, 'justCreated' )) {
-				$newChunk = $player->level->getChunkPlayers ( $player->x >> 4, $player->z >> 4 );
-				foreach ( $this->getPrivateVariableData ( $player, 'hasSpawned' ) as $player ) {
-					if (! isset ( $newChunk [$player->getLoaderId ()] )) {
-						$player->despawnFrom ( $player );
-					} else {
-						unset ( $newChunk [$player->getLoaderId ()] );
-					}
-				}
-				foreach ( $newChunk as $player ) {
-					$player->spawnTo ( $player );
-				}
-			}
-			
-			if ($player->chunk === null) {
-				return;
-			}
-			
-			$player->chunk->addEntity ( $player );
-		}
-	}
-	private function checkGroundState(Player $player, $movX, $movY, $movZ, $dx, $dy, $dz) {
-		$player->isCollidedVertically = $movY != $dy;
-		$player->isCollidedHorizontally = ($movX != $dx or $movZ != $dz);
-		$player->isCollided = ($player->isCollidedHorizontally or $player->isCollidedVertically);
-		$player->onGround = ($movY != $dy and $movY < 0);
-	}
-	private function updateFallState(Player $player, $distanceThisTick, $onGround) {
-		if ($onGround === true) {
-			if ($player->fallDistance > 0) {
-				if ($this instanceof Living) {
-					$this->fall ( $player->fallDistance );
-				}
-				$player->resetFallDistance ();
-			}
-		} elseif ($distanceThisTick < 0) {
-			$player->fallDistance -= $distanceThisTick;
-		}
+		$plugin = $server->getPluginManager ()->getPlugin ( 'SpawningPool' );
+		if ($plugin instanceof Main)
+			$plugin->getCallback ()->moveplayer->playerMoveCallback4 ( $this->name, $this->ySize, $this->onGround, $this->movX, $this->movY, $this->movZ, $this->dx, $this->dy, $this->dz, $this->callbackIndex );
 	}
 	public function getPrivateVariableData($object, $variableName) {
 		$reflectionClass = new \ReflectionClass ( $object );
 		$property = $reflectionClass->getProperty ( $variableName );
 		$property->setAccessible ( true );
 		return $property->getValue ( $object );
-	}
-	public function setPrivateVariableData($object, $variableName, $set) {
-		$reflectionClass = new \ReflectionClass ( $object );
-		$property = $reflectionClass->getProperty ( $variableName );
-		$property->setAccessible ( true );
-		$property->setValue ( $object, $set );
 	}
 }
 
