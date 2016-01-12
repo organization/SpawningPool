@@ -44,7 +44,6 @@ class PlayerMovementTask2 extends AsyncTask {
 		$this->ySize = $this->getPrivateVariableData ( $player, 'ySize' );
 	}
 	public function onRun() {
-		echo "PlayerMovementTask2 onRun()\n";
 		$boundingBox = unserialize ( $this->boundingBox );
 		$list = unserialize ( $this->list );
 		
@@ -96,7 +95,6 @@ class PlayerMovementTask2 extends AsyncTask {
 		$this->boundingBox = serialize ( $boundingBox );
 	}
 	public function onCompletion(Server $server) {
-		echo "PlayerMovementTask2 onCompletion()\n";
 		$boundingBox = unserialize ( $this->boundingBox );
 		
 		if (! $boundingBox instanceof AxisAlignedBB)

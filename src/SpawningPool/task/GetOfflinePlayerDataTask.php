@@ -72,11 +72,6 @@ class GetOfflinePlayerDataTask extends AsyncTask {
 						new DoubleTag ( 2, $spawn [2] ) 
 				] ),
 				new StringTag ( "Level", $spawn [3] ),
-				// new StringTag("SpawnLevel", $this->getDefaultLevel()->getName()),
-				// new IntTag("SpawnX", (int) $spawn->x),
-				// new IntTag("SpawnY", (int) $spawn->y),
-				// new IntTag("SpawnZ", (int) $spawn->z),
-				// new ByteTag("SpawnForced", 1), //TODO
 				new ListTag ( "Inventory", [ ] ),
 				new CompoundTag ( "Achievements", [ ] ),
 				new IntTag ( "playerGameType", $this->gamemode ),

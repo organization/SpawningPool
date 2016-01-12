@@ -28,7 +28,6 @@ class PlayerMovementTask1 extends AsyncTask {
 		$this->boundingBox = serialize ( $player->boundingBox );
 	}
 	public function onRun() {
-		echo "PlayerMovementTask1 onRun()\n";
 		$boundingBox = unserialize ( $this->boundingBox );
 		if (! $boundingBox instanceof AxisAlignedBB)
 			return;
@@ -40,10 +39,8 @@ class PlayerMovementTask1 extends AsyncTask {
 		$this->maxX = Math::ceilFloat ( $boundingBox->maxX );
 		$this->maxY = Math::ceilFloat ( $boundingBox->maxY );
 		$this->maxZ = Math::ceilFloat ( $boundingBox->maxZ );
-		// TODO or $boundingBox is $bb right?
 	}
 	public function onCompletion(Server $server) {
-		echo "PlayerMovementTask1 onCompletion()\n";
 		$plugin = $server->getPluginManager ()->getPlugin ( 'SpawningPool' );
 		$bb = unserialize ( $this->bb );
 		if ($plugin instanceof Main and $bb instanceof AxisAlignedBB) {

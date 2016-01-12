@@ -55,10 +55,6 @@ class AuthenticateCallback implements Listener {
 			return;
 		}
 		
-		// $player->username = TextFormat::clean ( $packet->username );
-		// $player->displayName = $packet->username;
-		// $player->iusername = strtolower ( $packet->username );
-		
 		$this->setPrivateVariableData ( $player, 'username', $packet->username );
 		$this->setPrivateVariableData ( $player, 'displayName', $packet->username );
 		$this->setPrivateVariableData ( $player, 'iusername', $packet->username );
@@ -86,11 +82,6 @@ class AuthenticateCallback implements Listener {
 			
 			return;
 		}
-		
-		// $player->randomClientId = $packet->clientId;
-		// $player->uuid = $packet->clientUUID;
-		// $player->rawUUID = $player->uuid->toBinary ();
-		// $player->clientSecret = $packet->clientSecret;
 		
 		$this->setPrivateVariableData ( $player, 'randomClientId', $packet->clientId );
 		$this->setPrivateVariableData ( $player, 'uuid', $packet->clientUUID );
@@ -178,7 +169,6 @@ class AuthenticateCallback implements Listener {
 			}
 		}
 		
-		// $nbt = $player->server->getOfflinePlayerData ( $this->username );
 		if (! isset ( $nbt->NameTag )) {
 			$nbt->NameTag = new StringTag ( "NameTag", $this->getPrivateVariableData ( $player, 'username' ) );
 		} else {
@@ -190,7 +180,6 @@ class AuthenticateCallback implements Listener {
 			$nbt->playerGameType = new IntTag ( "playerGameType", $player->gamemode );
 		}
 		
-		// $player->allowFlight = $player->isCreative ();
 		$this->setPrivateVariableData ( $player, 'allowFlight', $player->isCreative () );
 		
 		if (($level = $this->server->getLevelByName ( $nbt ["Level"] )) === null) {
@@ -219,8 +208,6 @@ class AuthenticateCallback implements Listener {
 		if ($this->server->getAutoSave ()) {
 			$this->server->saveOfflinePlayerData ( $player->getName (), $nbt, true );
 		}
-		
-		// parent::__construct ( $this->level->getChunk ( $nbt ["Pos"] [0] >> 4, $nbt ["Pos"] [2] >> 4, true ), $nbt );
 		$this->entityConstruct ( $player, $player->getLevel ()->getChunk ( $nbt ["Pos"] [0] >> 4, $nbt ["Pos"] [2] >> 4, true ), $nbt );
 		
 		$player->loggedIn = true;

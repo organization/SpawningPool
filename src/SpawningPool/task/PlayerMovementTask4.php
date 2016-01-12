@@ -47,7 +47,6 @@ class PlayerMovementTask4 extends AsyncTask {
 		$this->inner = $inner;
 	}
 	public function onRun() {
-		echo "PlayerMovementTask4 onRun()\n";
 		$boundingBox = unserialize ( $this->boundingBox );
 		$list = unserialize ( $this->list );
 		
@@ -91,7 +90,6 @@ class PlayerMovementTask4 extends AsyncTask {
 		}
 	}
 	public function onCompletion(Server $server) {
-		echo "PlayerMovementTask4 onCompletion()\n";
 		$player = $server->getPlayer ( $this->name );
 		
 		if (! $player instanceof Player)

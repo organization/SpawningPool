@@ -87,6 +87,7 @@ class MovePlayerCallback implements Listener {
 		
 		$packet = $event->getPacket ();
 		$player = $event->getPlayer ();
+		
 		$controller = PlayerMoveController::getUser ( $player->getName () );
 		
 		$newPos = new Vector3 ( $packet->x, $packet->y - $player->getEyeHeight (), $packet->z );
@@ -146,7 +147,7 @@ class MovePlayerCallback implements Listener {
 					$this->setPrivateVariableData ( $player, 'nextChunkOrderRun', 0 );
 				} else {
 					if ($player->chunk !== null) {
-						$player->chunk->removeEntity ( $this );
+						$player->chunk->removeEntity ( $player );
 					}
 					$player->chunk = $chunk;
 				}
@@ -158,8 +159,6 @@ class MovePlayerCallback implements Listener {
 			$dy = $newPos->y - $player->y;
 			$dz = $newPos->z - $player->z;
 			
-			/* IMPORTANT */
-			// $player->move ( $dx, $dy, $dz );
 			$this->move ( $player, $dx, $dy, $dz );
 			
 			$diffX = $player->x - $newPos->x;
@@ -212,8 +211,6 @@ class MovePlayerCallback implements Listener {
 			}
 			
 			if (! $player->isSpectator ()) {
-				/* IMPORTANT */
-				// $player->checkNearEntities ( $tickDiff );
 				$this->checkNearEntities ( $player, $tickDiff );
 			}
 			
@@ -328,7 +325,6 @@ class MovePlayerCallback implements Listener {
 		}
 	}
 	public function playerMoveCallback1($name, AxisAlignedBB $bb, $minX, $minY, $minZ, $maxX, $maxY, $maxZ, $dx, $dy, $dz) {
-		echo "playerMoveCallback1()\n";
 		$player = $this->server->getPlayer ( $name );
 		
 		if (! $player instanceof Player)
